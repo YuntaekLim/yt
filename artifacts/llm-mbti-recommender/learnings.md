@@ -41,3 +41,21 @@ copy를 만든다.
 
 **다시 마주칠 가능성**: 중간 — radix·shadcn 컴포넌트가 종종 mutable array를 요구하고
 shadcn 코드는 그대로 두는 규칙이라 wrapper 안에서 매번 같은 패턴이 필요할 수 있음.
+
+---
+category: tooling
+applied: not-yet
+---
+## vitest `vi.mock` 팩토리에서 외부 변수 참조 시 hoist 에러
+
+**상황**: Task 6 page.test.tsx에서 `const redirectMock = vi.fn(...)` 다음 줄에
+`vi.mock("next/navigation", () => ({ redirect: redirectMock }))`를 적었더니
+"Cannot access 'redirectMock' before initialization". vi.mock은 import보다 위로
+hoist되는데 일반 변수는 그대로 그 자리에 남아 mock 팩토리가 실행될 때 아직 정의 안 됨.
+
+**판단**: `vi.hoisted(() => ({ redirectMock: vi.fn(...) }))`로 mock을 같이 hoist.
+이후 `vi.mock`의 팩토리 안에서 그대로 참조 가능.
+
+**다시 마주칠 가능성**: 높음 — Server Component에서 redirect/notFound 같은
+control-flow를 mock해야 할 때마다 반복. SKILL이나 CLAUDE.md에 패턴 한 줄 메모할
+가치가 있음.
