@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe: llm-mbti-recommender</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    --w-bg: #f5f5f5;
+    --w-border: #ccc;
+    --w-text: #555;
+    --w-muted: #aaa;
+    --w-fill: #eee;
+  }
+
+  * {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--w-text);
+  }
+
+  body { background: var(--w-bg); }
+
+  /* Screen nav */
+  nav { position: sticky; top: 0; z-index: 40; background: var(--w-bg); border-bottom: 1px solid var(--w-border); }
+  nav button { cursor: pointer; font-size: 13px; }
+  nav button:hover { background: var(--w-fill); border-radius: 4px; }
+  nav button.active { font-weight: bold; border-bottom: 2px solid var(--w-text); }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Viewport toggle */
+  .vp-toggle button {
+    font-size: 12px; padding: 2px 8px;
+    border: 1px solid var(--w-border); cursor: pointer; background: white;
+  }
+  .vp-toggle button:first-child { border-radius: 4px 0 0 4px; }
+  .vp-toggle button:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+  .vp-toggle button.active { background: var(--w-text); color: white; }
+
+  /* Mobile viewport frame */
+  body.viewport-mobile .screen-content {
+    max-width: 375px !important;
+    margin: 24px auto !important;
+    border: 2px solid var(--w-border);
+    border-radius: 24px;
+    min-height: 667px;
+    background: white;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 32px 16px !important;
+  }
+
+  /* Screen Notes */
+  .screen-notes {
+    background: #fffde7;
+    border-left: 3px solid #ffd54f;
+    padding: 12px 16px;
+    margin-top: 24px;
+    font-size: 13px;
+    border-radius: 0 4px 4px 0;
+  }
+  .screen-notes summary {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    color: #b0a050;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .screen-notes p { margin: 6px 0 2px; color: #777; }
+  .screen-notes ul { margin: 4px 0 0 16px; padding: 0; color: #777; }
+  .screen-notes li { margin: 2px 0; }
+
+  /* Wireframe primitives */
+  .w-card {
+    border: 1px solid var(--w-border);
+    background: white;
+    border-radius: 8px;
+  }
+  .w-card-selected {
+    border: 2px solid var(--w-text);
+    background: var(--w-fill);
+  }
+  .w-chip {
+    border: 1px solid var(--w-border);
+    background: white;
+    border-radius: 999px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .w-chip-selected {
+    border-color: var(--w-text);
+    background: var(--w-fill);
+    font-weight: bold;
+  }
+  .w-btn {
+    border: 1px solid var(--w-border);
+    background: white;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .w-btn-primary {
+    background: var(--w-text);
+    color: white;
+    border-color: var(--w-text);
+  }
+  .w-btn-primary[disabled] {
+    background: var(--w-muted);
+    border-color: var(--w-muted);
+    cursor: not-allowed;
+  }
+  .w-progress-dot {
+    width: 24px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--w-fill);
+  }
+  .w-progress-dot.active {
+    background: var(--w-text);
+  }
+  .w-mbti-cell {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--w-border);
+    background: white;
+    border-radius: 6px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--w-text);
+    cursor: pointer;
+  }
+  .w-mbti-cell.selected {
+    border: 2px solid var(--w-text);
+    background: var(--w-fill);
+  }
+  @container (min-width: 768px) {
+    .w-mbti-cell { font-size: 24px; }
+  }
+  .w-prompt-block {
+    background: var(--w-fill);
+    border: 1px solid var(--w-border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body class="p-0 m-0 viewport-mobile">
+
+<nav class="flex items-center gap-4 px-6 py-2">
+  <span class="text-xs" style="color:var(--w-muted)">wireframe</span>
+  <button id="nav-0" onclick="show(0)" class="px-2 py-1">Step 1 · MBTI</button>
+  <button id="nav-1" onclick="show(1)" class="px-2 py-1">Step 2 · 직무</button>
+  <button id="nav-2" onclick="show(2)" class="px-2 py-1">결과</button>
+  <span class="text-xs mx-1" style="color:var(--w-muted)">|</span>
+  <button id="nav-4" onclick="show(4)" class="px-2 py-1">Step 1·빈</button>
+  <button id="nav-5" onclick="show(5)" class="px-2 py-1">Step 3·작업</button>
+  <button id="nav-6" onclick="show(6)" class="px-2 py-1">Step 4·우선순위</button>
+  <button id="nav-7" onclick="show(7)" class="px-2 py-1">결과·복사피드백</button>
+  <button id="nav-8" onclick="show(8)" class="px-2 py-1">결과·공유피드백</button>
+  <div class="vp-toggle flex ml-auto">
+    <button id="vp-desktop" onclick="setViewport('desktop')">Desktop</button>
+    <button id="vp-mobile" onclick="setViewport('mobile')" class="active">Mobile</button>
+  </div>
+</nav>
+
+<!-- ─────────────────────────────────────────────────────────────
+     Screen 0 · Step 1 MBTI 선택 (16유형 그리드, 단일 선택)
+     spec scenario 1, 6
+───────────────────────────────────────────────────────────── -->
+<div id="screen-0" class="screen" data-scenario="step-1-mbti">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      Step 1 · MBTI 선택
+    </h2>
+
+    <!-- Progress -->
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot"></div>
+      <div class="w-progress-dot"></div>
+      <div class="w-progress-dot"></div>
+      <span class="text-xs ml-2" style="color:var(--w-muted)">1 / 4</span>
+    </div>
+
+    <!-- Heading -->
+    <h1 class="text-xl font-bold mb-1" style="color:var(--w-text)">당신의 MBTI는?</h1>
+    <p class="text-sm mb-6" style="color:var(--w-muted)">16유형 중 하나를 선택해주세요</p>
+
+    <!-- 16 grid: mobile 4x4, desktop wider -->
+    <div class="grid grid-cols-4 gap-2 mb-8 @md:max-w-md @md:mx-auto">
+      <div class="w-mbti-cell">INTJ</div>
+      <div class="w-mbti-cell">INTP</div>
+      <div class="w-mbti-cell">ENTJ</div>
+      <div class="w-mbti-cell">ENTP</div>
+      <div class="w-mbti-cell">INFJ</div>
+      <div class="w-mbti-cell">INFP</div>
+      <div class="w-mbti-cell">ENFJ</div>
+      <div class="w-mbti-cell">ENFP</div>
+      <div class="w-mbti-cell selected">ISTJ</div>
+      <div class="w-mbti-cell">ISFJ</div>
+      <div class="w-mbti-cell">ESTJ</div>
+      <div class="w-mbti-cell">ESFJ</div>
+      <div class="w-mbti-cell">ISTP</div>
+      <div class="w-mbti-cell">ISFP</div>
+      <div class="w-mbti-cell">ESTP</div>
+      <div class="w-mbti-cell">ESFP</div>
+    </div>
+
+    <!-- Bottom nav -->
+    <div class="flex justify-between mt-8">
+      <button class="w-btn" style="visibility:hidden">이전</button>
+      <button class="w-btn w-btn-primary">다음 →</button>
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <p>입력 흐름의 첫 단계. MBTI 카드 단일 선택.</p>
+        <ul>
+          <li>트리거: 사이트 진입, 또는 잘못된 결과 URL로 진입(spec 6), 또는 "다시 진단하기" 클릭(spec 7)</li>
+          <li>인터랙션: 16개 카드 중 하나 탭 → 강조 표시 / "다음" 버튼 활성화</li>
+          <li>전환: "다음" → Step 2 다중선택 화면 (직무)</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     Screen 1 · Step 2-4 다중 선택 (직무/작업/우선순위 공통 레이아웃)
+     데이터·옵션 수만 다름 → data-scenario로 변형 추가 예정
+     spec scenario 1
+───────────────────────────────────────────────────────────── -->
+<div id="screen-1" class="screen" data-scenario="step-2-jobs">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      Step 2 · 직무 다중 선택
+    </h2>
+
+    <!-- Progress -->
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot"></div>
+      <div class="w-progress-dot"></div>
+      <span class="text-xs ml-2" style="color:var(--w-muted)">2 / 4</span>
+    </div>
+
+    <!-- Heading -->
+    <h1 class="text-xl font-bold mb-1" style="color:var(--w-text)">당신의 직무는?</h1>
+    <p class="text-sm mb-6" style="color:var(--w-muted)">해당하는 직무를 모두 선택해주세요 (1개 이상)</p>
+
+    <!-- Chips -->
+    <div class="flex flex-wrap gap-2 mb-8">
+      <span class="w-chip">기획</span>
+      <span class="w-chip w-chip-selected"><i data-lucide="check" class="w-3 h-3"></i>인공지능</span>
+      <span class="w-chip">빅데이터</span>
+      <span class="w-chip">미들웨어</span>
+      <span class="w-chip w-chip-selected"><i data-lucide="check" class="w-3 h-3"></i>어플리케이션SW</span>
+      <span class="w-chip">클라우드</span>
+      <span class="w-chip">SW엔지니어링</span>
+      <span class="w-chip">시스템SW</span>
+    </div>
+
+    <p class="text-xs mb-2" style="color:var(--w-muted)">선택: 2개</p>
+
+    <!-- Bottom nav -->
+    <div class="flex justify-between mt-8">
+      <button class="w-btn">← 이전</button>
+      <button class="w-btn w-btn-primary">다음 →</button>
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <p>Step 2, 3, 4가 같은 레이아웃을 공유. 표시 데이터·옵션 수·진행도만 달라짐.</p>
+        <ul>
+          <li>트리거: 이전 단계 "다음" 클릭</li>
+          <li>인터랙션: 칩 탭 → 선택 토글. 최소 1개 선택 시 "다음" 활성</li>
+          <li>전환: "다음" → 다음 단계 (Step 4 우선순위에서는 "결과 보기")</li>
+          <li>Step 3 (작업) 변형: 10개 칩, 진행도 3/4</li>
+          <li>Step 4 (우선순위) 변형: 4개 칩(정확성/속도/비용/창의성), 진행도 4/4, 버튼 라벨 "결과 보기"</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     Screen 2 · 결과 페이지
+     spec scenario 1, 2, 3, 4, 7
+───────────────────────────────────────────────────────────── -->
+<div id="screen-2" class="screen" data-scenario="result-default">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      결과 페이지
+    </h2>
+
+    <!-- 입력 요약 -->
+    <p class="text-xs mb-1" style="color:var(--w-muted)">당신의 진단</p>
+    <p class="text-sm mb-6" style="color:var(--w-text)">
+      INTJ · 인공지능, 어플리케이션SW · 코드 작성·리뷰, 기술 리서치·학습 · 정확성, 창의성
+    </p>
+
+    <!-- Main 추천 카드 -->
+    <div class="w-card p-5 mb-4">
+      <p class="text-xs mb-1" style="color:var(--w-muted)">추천 모델</p>
+      <h1 class="text-2xl font-bold mb-3" style="color:var(--w-text)">Claude Opus 4.7</h1>
+
+      <!-- 추천 근거 -->
+      <p class="text-xs mb-2" style="color:var(--w-muted)">왜 이 모델인가</p>
+      <div class="text-sm leading-relaxed mb-5" style="color:var(--w-text)">
+        <p class="mb-2">[정적 데이터: 추천 근거 텍스트 — 빌드 산출물, 변수 치환됨]</p>
+        <p class="mb-2">INTJ의 분석적·체계적 성향과 인공지능·어플리케이션SW 직무, 그리고 정확성·창의성을 동시에 추구하는 우선순위를 고려할 때 ...</p>
+        <p>특히 깊은 추론이 필요한 코드 리뷰·기술 리서치 작업에서 ...</p>
+      </div>
+
+      <!-- 시스템 프롬프트 -->
+      <p class="text-xs mb-2 flex items-center justify-between" style="color:var(--w-muted)">
+        <span>맞춤 시스템 프롬프트</span>
+        <button class="w-btn text-xs" style="padding:4px 10px">
+          <i data-lucide="copy" class="w-3 h-3 inline-block"></i> 복사
+        </button>
+      </p>
+      <div class="w-prompt-block">[정적 데이터: 시스템 프롬프트 템플릿 — MBTI·직무·작업·우선순위에 맞춰 변수 치환됨]
+
+당신은 INTJ 성향의 AI/SW 엔지니어를 돕는 어시스턴트입니다. 분석적 깊이를 우선하되 ...</div>
+    </div>
+
+    <!-- 대안 카드 -->
+    <p class="text-xs mb-2 mt-6" style="color:var(--w-muted)">대안</p>
+    <div class="w-card p-4 mb-2">
+      <div class="flex items-baseline justify-between mb-1">
+        <h3 class="text-base font-bold" style="color:var(--w-text)">GPT-5</h3>
+        <span class="text-xs" style="color:var(--w-muted)">속도 우선</span>
+      </div>
+      <p class="text-xs" style="color:var(--w-muted)">반복적 코드 작성과 빠른 피드백 루프에 적합</p>
+    </div>
+    <div class="w-card p-4 mb-6">
+      <div class="flex items-baseline justify-between mb-1">
+        <h3 class="text-base font-bold" style="color:var(--w-text)">Gemini 2.5 Pro</h3>
+        <span class="text-xs" style="color:var(--w-muted)">멀티모달</span>
+      </div>
+      <p class="text-xs" style="color:var(--w-muted)">기술 리서치 시 다이어그램·문서 이미지 분석에 강점</p>
+    </div>
+
+    <!-- 액션 -->
+    <div class="flex gap-2 mt-8">
+      <button class="w-btn flex-1">
+        <i data-lucide="share-2" class="w-4 h-4 inline-block"></i> 공유
+      </button>
+      <button class="w-btn flex-1">
+        <i data-lucide="rotate-ccw" class="w-4 h-4 inline-block"></i> 다시 진단하기
+      </button>
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <p>진단 마지막 단계 "결과 보기" 후 정적 추천 룩업이 끝나면 진입. 공유 URL 직접 방문도 동일 화면.</p>
+        <ul>
+          <li>트리거: Step 4 "결과 보기" 클릭 → 정적 룩업 완료 후 결과 페이지 / 공유 URL 직접 방문</li>
+          <li>인터랙션: 프롬프트 "복사" → 클립보드 + 잠시 "복사됨" 피드백 / "공유" → URL 클립보드 + 피드백</li>
+          <li>전환: "다시 진단하기" → Step 1로, 입력 초기화</li>
+          <li>OG 메타: 결과 페이지 HTML에 모델명·MBTI가 들어간 OG 이미지가 임베드됨 (소셜 미리보기용)</li>
+          <li>변형(scenario 단계): "복사 직후" / "공유 직후" 피드백 상태</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     Screen 3 · 에러 화면 (LLM 호출 실패)
+     spec scenario 5
+───────────────────────────────────────────────────────────── -->
+<!-- Screen 3 (LLM 실패 에러 화면) 제거 — spec 업데이트에 따라 런타임 LLM 호출이
+     사라져 실패 시나리오 자체가 없음. -->
+
+<!-- ─────────────────────────────────────────────────────────────
+     Screen 4 · Step 1 · 미선택 상태 (다음 버튼 비활성)
+     spec scenario 1 — 입력 가드 검증
+───────────────────────────────────────────────────────────── -->
+<div id="screen-4" class="screen" data-scenario="step-1-mbti-empty">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      Step 1 · MBTI 미선택 상태
+    </h2>
+
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot"></div>
+      <div class="w-progress-dot"></div>
+      <div class="w-progress-dot"></div>
+      <span class="text-xs ml-2" style="color:var(--w-muted)">1 / 4</span>
+    </div>
+
+    <h1 class="text-xl font-bold mb-1" style="color:var(--w-text)">당신의 MBTI는?</h1>
+    <p class="text-sm mb-6" style="color:var(--w-muted)">16유형 중 하나를 선택해주세요</p>
+
+    <div class="grid grid-cols-4 gap-2 mb-8 @md:max-w-md @md:mx-auto">
+      <div class="w-mbti-cell">INTJ</div>
+      <div class="w-mbti-cell">INTP</div>
+      <div class="w-mbti-cell">ENTJ</div>
+      <div class="w-mbti-cell">ENTP</div>
+      <div class="w-mbti-cell">INFJ</div>
+      <div class="w-mbti-cell">INFP</div>
+      <div class="w-mbti-cell">ENFJ</div>
+      <div class="w-mbti-cell">ENFP</div>
+      <div class="w-mbti-cell">ISTJ</div>
+      <div class="w-mbti-cell">ISFJ</div>
+      <div class="w-mbti-cell">ESTJ</div>
+      <div class="w-mbti-cell">ESFJ</div>
+      <div class="w-mbti-cell">ISTP</div>
+      <div class="w-mbti-cell">ISFP</div>
+      <div class="w-mbti-cell">ESTP</div>
+      <div class="w-mbti-cell">ESFP</div>
+    </div>
+
+    <div class="flex justify-between mt-8">
+      <button class="w-btn" style="visibility:hidden">이전</button>
+      <button class="w-btn w-btn-primary" disabled>다음 →</button>
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <p>최초 진입 / 잘못된 URL 진입 / "다시 진단하기" 후의 비어 있는 상태.</p>
+        <ul>
+          <li>트리거: 사이트 첫 진입, 잘못된 결과 URL(spec 6), "다시 진단하기"(spec 7)</li>
+          <li>인터랙션: 어떤 카드도 선택되지 않은 상태에서 "다음" 버튼은 비활성</li>
+          <li>전환: MBTI 카드 하나 선택 시 Screen 0 상태로 진입</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     Screen 5 · Step 3 · 작업 다중선택 (10 chips, 진행도 3/4)
+     spec scenario 1 — 흐름 검증
+───────────────────────────────────────────────────────────── -->
+<div id="screen-5" class="screen" data-scenario="step-3-tasks">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      Step 3 · 작업 다중 선택
+    </h2>
+
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot"></div>
+      <span class="text-xs ml-2" style="color:var(--w-muted)">3 / 4</span>
+    </div>
+
+    <h1 class="text-xl font-bold mb-1" style="color:var(--w-text)">주로 어떤 작업을 하시나요?</h1>
+    <p class="text-sm mb-6" style="color:var(--w-muted)">해당하는 작업을 모두 선택해주세요 (1개 이상)</p>
+
+    <div class="flex flex-wrap gap-2 mb-8">
+      <span class="w-chip w-chip-selected"><i data-lucide="check" class="w-3 h-3"></i>코드 작성·리뷰</span>
+      <span class="w-chip">디버깅·트러블슈팅</span>
+      <span class="w-chip">문서 작성</span>
+      <span class="w-chip w-chip-selected"><i data-lucide="check" class="w-3 h-3"></i>기술 리서치·학습</span>
+      <span class="w-chip">데이터 분석·SQL</span>
+      <span class="w-chip">테스트 케이스·QA</span>
+      <span class="w-chip">회의록·요약</span>
+      <span class="w-chip">번역·영문 작성</span>
+      <span class="w-chip">아이디어 발산</span>
+      <span class="w-chip">프롬프트 엔지니어링</span>
+    </div>
+
+    <p class="text-xs mb-2" style="color:var(--w-muted)">선택: 2개</p>
+
+    <div class="flex justify-between mt-8">
+      <button class="w-btn">← 이전</button>
+      <button class="w-btn w-btn-primary">다음 →</button>
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <p>Step 2와 동일한 chip 다중 선택 패턴. 옵션 10개 + 진행도 3/4.</p>
+        <ul>
+          <li>트리거: Step 2 "다음" 클릭</li>
+          <li>인터랙션: 칩 탭 → 토글. 최소 1개 선택 시 "다음" 활성</li>
+          <li>전환: "다음" → Step 4 우선순위</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     Screen 6 · Step 4 · 우선순위 다중선택 (4 chips, "결과 보기")
+     spec scenario 1 — 마지막 단계
+───────────────────────────────────────────────────────────── -->
+<div id="screen-6" class="screen" data-scenario="step-4-priorities">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      Step 4 · 우선순위 다중 선택
+    </h2>
+
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot active"></div>
+      <div class="w-progress-dot active"></div>
+      <span class="text-xs ml-2" style="color:var(--w-muted)">4 / 4</span>
+    </div>
+
+    <h1 class="text-xl font-bold mb-1" style="color:var(--w-text)">무엇이 가장 중요한가요?</h1>
+    <p class="text-sm mb-6" style="color:var(--w-muted)">중요하게 여기는 가치를 모두 선택해주세요 (1개 이상)</p>
+
+    <div class="flex flex-wrap gap-2 mb-8">
+      <span class="w-chip w-chip-selected"><i data-lucide="check" class="w-3 h-3"></i>정확성</span>
+      <span class="w-chip">속도</span>
+      <span class="w-chip">비용</span>
+      <span class="w-chip w-chip-selected"><i data-lucide="check" class="w-3 h-3"></i>창의성</span>
+    </div>
+
+    <p class="text-xs mb-2" style="color:var(--w-muted)">선택: 2개</p>
+
+    <div class="flex justify-between mt-8">
+      <button class="w-btn">← 이전</button>
+      <button class="w-btn w-btn-primary">
+        <i data-lucide="sparkles" class="w-4 h-4 inline-block"></i> 결과 보기
+      </button>
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <p>마지막 입력 단계. 버튼 라벨이 "다음" 대신 "결과 보기"로 변경.</p>
+        <ul>
+          <li>트리거: Step 3 "다음" 클릭</li>
+          <li>인터랙션: 칩 탭 → 토글. 최소 1개 선택 시 "결과 보기" 활성</li>
+          <li>전환: "결과 보기" 클릭 → 결과 페이지로 이동 (정적 룩업, 실패 경로 없음)</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     Screen 7 · 결과 · 시스템 프롬프트 복사 피드백
+     spec scenario 2
+───────────────────────────────────────────────────────────── -->
+<div id="screen-7" class="screen" data-scenario="result-prompt-copied">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      결과 · 프롬프트 복사 직후
+    </h2>
+
+    <p class="text-xs mb-1" style="color:var(--w-muted)">당신의 진단</p>
+    <p class="text-sm mb-6" style="color:var(--w-text)">
+      INTJ · 인공지능, 어플리케이션SW · 코드 작성·리뷰, 기술 리서치·학습 · 정확성, 창의성
+    </p>
+
+    <div class="w-card p-5 mb-4">
+      <p class="text-xs mb-1" style="color:var(--w-muted)">추천 모델</p>
+      <h1 class="text-2xl font-bold mb-3" style="color:var(--w-text)">Claude Opus 4.7</h1>
+
+      <p class="text-xs mb-2" style="color:var(--w-muted)">왜 이 모델인가</p>
+      <div class="text-sm leading-relaxed mb-5" style="color:var(--w-text)">
+        <p class="mb-2">[정적 데이터: 추천 근거 텍스트 — 빌드 산출물, 변수 치환됨]</p>
+        <p class="mb-2">INTJ의 분석적·체계적 성향과 인공지능·어플리케이션SW 직무, 그리고 정확성·창의성을 동시에 추구하는 우선순위를 고려할 때 ...</p>
+        <p>특히 깊은 추론이 필요한 코드 리뷰·기술 리서치 작업에서 ...</p>
+      </div>
+
+      <p class="text-xs mb-2 flex items-center justify-between" style="color:var(--w-muted)">
+        <span>맞춤 시스템 프롬프트</span>
+        <button class="w-btn text-xs" style="padding:4px 10px; background:var(--w-text); color:white; border-color:var(--w-text)">
+          <i data-lucide="check" class="w-3 h-3 inline-block"></i> 복사됨
+        </button>
+      </p>
+      <div class="w-prompt-block">[정적 데이터: 시스템 프롬프트 템플릿 — MBTI·직무·작업·우선순위에 맞춰 변수 치환됨]
+
+당신은 INTJ 성향의 AI/SW 엔지니어를 돕는 어시스턴트입니다. 분석적 깊이를 우선하되 ...</div>
+    </div>
+
+    <!-- Toast feedback -->
+    <div class="fixed bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full"
+         style="background:var(--w-text); color:white; font-size:13px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+      <i data-lucide="clipboard-check" class="w-3 h-3 inline-block"></i> 시스템 프롬프트가 복사되었어요
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <p>메인 카드의 "복사" 클릭 직후 1-2초 동안 보이는 일시 피드백 상태.</p>
+        <ul>
+          <li>트리거: 결과 페이지의 시스템 프롬프트 "복사" 버튼 클릭</li>
+          <li>인터랙션: 버튼 라벨이 "복사됨"으로 잠시 변경 + 화면 하단에 토스트 메시지</li>
+          <li>전환: 1-2초 후 자동으로 기본 결과 화면(Screen 2)로 복원</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     Screen 8 · 결과 · URL 공유 피드백
+     spec scenario 3
+───────────────────────────────────────────────────────────── -->
+<div id="screen-8" class="screen" data-scenario="result-url-copied">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-5" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      결과 · URL 공유 직후
+    </h2>
+
+    <p class="text-xs mb-1" style="color:var(--w-muted)">당신의 진단</p>
+    <p class="text-sm mb-6" style="color:var(--w-text)">
+      INTJ · 인공지능, 어플리케이션SW · 코드 작성·리뷰, 기술 리서치·학습 · 정확성, 창의성
+    </p>
+
+    <div class="w-card p-5 mb-4">
+      <p class="text-xs mb-1" style="color:var(--w-muted)">추천 모델</p>
+      <h1 class="text-2xl font-bold mb-3" style="color:var(--w-text)">Claude Opus 4.7</h1>
+
+      <p class="text-xs mb-2" style="color:var(--w-muted)">왜 이 모델인가</p>
+      <div class="text-sm leading-relaxed mb-5" style="color:var(--w-text)">
+        <p class="mb-2">[정적 데이터: 추천 근거 텍스트 — 빌드 산출물, 변수 치환됨]</p>
+        <p class="mb-2">INTJ의 분석적·체계적 성향과 인공지능·어플리케이션SW 직무 ...</p>
+      </div>
+
+      <p class="text-xs mb-2 flex items-center justify-between" style="color:var(--w-muted)">
+        <span>맞춤 시스템 프롬프트</span>
+        <button class="w-btn text-xs" style="padding:4px 10px">
+          <i data-lucide="copy" class="w-3 h-3 inline-block"></i> 복사
+        </button>
+      </p>
+      <div class="w-prompt-block">당신은 INTJ 성향의 AI/SW 엔지니어를 돕는 어시스턴트입니다 ...</div>
+    </div>
+
+    <p class="text-xs mb-2 mt-6" style="color:var(--w-muted)">대안</p>
+    <div class="w-card p-4 mb-2">
+      <div class="flex items-baseline justify-between mb-1">
+        <h3 class="text-base font-bold" style="color:var(--w-text)">GPT-5</h3>
+        <span class="text-xs" style="color:var(--w-muted)">속도 우선</span>
+      </div>
+      <p class="text-xs" style="color:var(--w-muted)">반복적 코드 작성과 빠른 피드백 루프에 적합</p>
+    </div>
+
+    <div class="flex gap-2 mt-8">
+      <button class="w-btn flex-1" style="background:var(--w-text); color:white; border-color:var(--w-text)">
+        <i data-lucide="check" class="w-4 h-4 inline-block"></i> 공유됨
+      </button>
+      <button class="w-btn flex-1">
+        <i data-lucide="rotate-ccw" class="w-4 h-4 inline-block"></i> 다시 진단하기
+      </button>
+    </div>
+
+    <!-- Toast feedback -->
+    <div class="fixed bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full"
+         style="background:var(--w-text); color:white; font-size:13px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+      <i data-lucide="link" class="w-3 h-3 inline-block"></i> URL이 복사되었어요
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <p>"공유" 버튼 클릭 직후의 일시 피드백 상태. URL이 클립보드로 복사됨.</p>
+        <ul>
+          <li>트리거: 결과 페이지의 "공유" 버튼 클릭</li>
+          <li>인터랙션: 버튼 라벨이 "공유됨"으로 잠시 변경 + 하단 토스트</li>
+          <li>전환: 1-2초 후 자동으로 기본 결과 화면(Screen 2)로 복원</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var currentScreen = 0;
+var screenIds = [];
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('screen-' + id).classList.add('active');
+  document.querySelectorAll('nav button[id^="nav-"]').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('nav-' + id).classList.add('active');
+  currentScreen = screenIds.indexOf(id);
+}
+
+function setViewport(mode) {
+  document.body.classList.remove('viewport-mobile', 'viewport-desktop');
+  document.body.classList.add('viewport-' + mode);
+  document.querySelectorAll('.vp-toggle button').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('vp-' + mode).classList.add('active');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('nav button[id^="nav-"]').forEach(function(b) {
+    screenIds.push(parseInt(b.id.replace('nav-', '')));
+  });
+  var first = document.querySelector('nav button[id^="nav-"]');
+  if (first) first.click();
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>
