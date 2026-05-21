@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -15,6 +16,40 @@ import {
 } from "@/types/recommender";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const input = parseInputFromSearchParams(params);
+  if (!input) {
+    return { title: "LLM-MBTI Recommender" };
+  }
+  const r = recommend(input);
+  const title = `${input.mbti} 성향에 추천하는 LLM — ${r.main.displayName}`;
+  const description = `${input.mbti}·${input.jobs
+    .map((j) => JOB_LABELS[j])
+    .join(", ")} 직무에 ${r.main.displayName}을(를) 추천합니다.`;
+  const ogPath = `/og?mbti=${input.mbti}&main=${r.main.id}`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [
+        {
+          url: ogPath,
+          width: 1200,
+          height: 630,
+          alt: `${input.mbti} 성향에 추천하는 ${r.main.displayName}`,
+        },
+      ],
+    },
+  };
+}
 
 export default async function ResultPage({
   searchParams,

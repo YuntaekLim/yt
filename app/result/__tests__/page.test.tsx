@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
   redirect: redirectMock,
 }));
 
-import ResultPage from "../page";
+import ResultPage, { generateMetadata } from "../page";
 import { MODELS } from "@/data/models";
 
 const validParams = {
@@ -139,5 +139,45 @@ describe("ResultPage (server component)", () => {
     expect(text).not.toMatch(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/); // no IP
     expect(text).not.toMatch(/session/i);
     expect(text).not.toMatch(/cookie/i);
+  });
+});
+
+describe("ResultPage generateMetadata", () => {
+  it("returns title containing the MBTI and the recommended model", async () => {
+    const md = await generateMetadata({
+      searchParams: Promise.resolve({ ...validParams }),
+    });
+    expect(typeof md.title).toBe("string");
+    expect(md.title as string).toContain("INTJ");
+    const present = modelNames.some((n) => (md.title as string).includes(n));
+    expect(present).toBe(true);
+  });
+
+  it("returns description embedding the user's MBTI and job labels", async () => {
+    const md = await generateMetadata({
+      searchParams: Promise.resolve({ ...validParams }),
+    });
+    expect(md.description).toContain("INTJ");
+    expect(md.description).toContain("인공지능");
+    expect(md.description).toContain("어플리케이션SW");
+  });
+
+  it("returns an openGraph image pointing to /og with mbti and main params", async () => {
+    const md = await generateMetadata({
+      searchParams: Promise.resolve({ ...validParams }),
+    });
+    const images = md.openGraph?.images as Array<{ url: string; alt?: string }>;
+    expect(Array.isArray(images)).toBe(true);
+    expect(images[0].url).toMatch(/^\/og\?/);
+    expect(images[0].url).toContain("mbti=INTJ");
+    expect(images[0].url).toMatch(/main=[\w-]+/);
+    expect(images[0].alt).toContain("INTJ");
+  });
+
+  it("falls back to a generic title when params are invalid", async () => {
+    const md = await generateMetadata({
+      searchParams: Promise.resolve({ mbti: "ZZZZ" }),
+    });
+    expect(md.title).toBe("LLM-MBTI Recommender");
   });
 });
