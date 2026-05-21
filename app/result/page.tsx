@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AlternativeCard } from "@/components/result/alternative-card";
+import { CopyPromptButton } from "@/components/result/copy-prompt-button";
 import { ResultCard } from "@/components/result/result-card";
+import { ShareButton } from "@/components/result/share-button";
 import { Button } from "@/components/ui/button";
 import { recommend } from "@/lib/recommend";
 import { parseInputFromSearchParams } from "@/lib/url-state";
@@ -41,11 +43,7 @@ export default async function ResultPage({
         model={r.main}
         reasoning={r.reasoning}
         systemPrompt={r.systemPrompt}
-        promptAction={
-          <Button variant="outline" size="sm">
-            복사
-          </Button>
-        }
+        promptAction={<CopyPromptButton text={r.systemPrompt} />}
       />
 
       <p className="mb-2 mt-8 text-xs text-muted-foreground">대안</p>
@@ -56,9 +54,7 @@ export default async function ResultPage({
       </div>
 
       <div className="mt-10 flex gap-2">
-        <Button variant="outline" className="flex-1">
-          공유
-        </Button>
+        <ShareButton />
         <Button asChild variant="outline" className="flex-1">
           <Link href="/">다시 진단하기</Link>
         </Button>
